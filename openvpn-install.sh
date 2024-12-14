@@ -361,41 +361,41 @@ crl-verify crl.pem" >> /etc/openvpn/server/server.conf
 			firewall-cmd --direct --add-rule ipv6 nat POSTROUTING 0 -s fddd:1194:1194:1194::/64 ! -d fddd:1194:1194:1194::/64 -j SNAT --to "$ip6"
 			firewall-cmd --permanent --direct --add-rule ipv6 nat POSTROUTING 0 -s fddd:1194:1194:1194::/64 ! -d fddd:1194:1194:1194::/64 -j SNAT --to "$ip6"
 		fi
-	else
-		# Create a service to set up persistent iptables rules
-		iptables_path=$(command -v iptables)
-		ip6tables_path=$(command -v ip6tables)
-		# nf_tables is not available as standard in OVZ kernels. So use iptables-legacy
-		# if we are in OVZ, with a nf_tables backend and iptables-legacy is available.
-		if [[ $(systemd-detect-virt) == "openvz" ]] && readlink -f "$(command -v iptables)" | grep -q "nft" && hash iptables-legacy 2>/dev/null; then
-			iptables_path=$(command -v iptables-legacy)
-			ip6tables_path=$(command -v ip6tables-legacy)
-		fi
-		echo "[Unit]
-Before=network.target
-[Service]
-Type=oneshot
-ExecStart=$iptables_path -t nat -A POSTROUTING -s 10.8.0.0/24 ! -d 10.8.0.0/24 -j SNAT --to $ip
-ExecStart=$iptables_path -I INPUT -p $protocol --dport $port -j ACCEPT
-ExecStart=$iptables_path -I FORWARD -s 10.8.0.0/24 -j ACCEPT
-ExecStart=$iptables_path -I FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT
-ExecStop=$iptables_path -t nat -D POSTROUTING -s 10.8.0.0/24 ! -d 10.8.0.0/24 -j SNAT --to $ip
-ExecStop=$iptables_path -D INPUT -p $protocol --dport $port -j ACCEPT
-ExecStop=$iptables_path -D FORWARD -s 10.8.0.0/24 -j ACCEPT
-ExecStop=$iptables_path -D FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT" > /etc/systemd/system/openvpn-iptables.service
-		if [[ -n "$ip6" ]]; then
-			echo "ExecStart=$ip6tables_path -t nat -A POSTROUTING -s fddd:1194:1194:1194::/64 ! -d fddd:1194:1194:1194::/64 -j SNAT --to $ip6
-ExecStart=$ip6tables_path -I FORWARD -s fddd:1194:1194:1194::/64 -j ACCEPT
-ExecStart=$ip6tables_path -I FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT
-ExecStop=$ip6tables_path -t nat -D POSTROUTING -s fddd:1194:1194:1194::/64 ! -d fddd:1194:1194:1194::/64 -j SNAT --to $ip6
-ExecStop=$ip6tables_path -D FORWARD -s fddd:1194:1194:1194::/64 -j ACCEPT
-ExecStop=$ip6tables_path -D FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT" >> /etc/systemd/system/openvpn-iptables.service
-		fi
-		echo "RemainAfterExit=yes
-[Install]
-WantedBy=multi-user.target" >> /etc/systemd/system/openvpn-iptables.service
-		systemctl enable --now openvpn-iptables.service
-	fi
+# 	else
+# 		# Create a service to set up persistent iptables rules
+# 		iptables_path=$(command -v iptables)
+# 		ip6tables_path=$(command -v ip6tables)
+# 		# nf_tables is not available as standard in OVZ kernels. So use iptables-legacy
+# 		# if we are in OVZ, with a nf_tables backend and iptables-legacy is available.
+# 		if [[ $(systemd-detect-virt) == "openvz" ]] && readlink -f "$(command -v iptables)" | grep -q "nft" && hash iptables-legacy 2>/dev/null; then
+# 			iptables_path=$(command -v iptables-legacy)
+# 			ip6tables_path=$(command -v ip6tables-legacy)
+# 		fi
+# 		echo "[Unit]
+# Before=network.target
+# [Service]
+# Type=oneshot
+# ExecStart=$iptables_path -t nat -A POSTROUTING -s 10.8.0.0/24 ! -d 10.8.0.0/24 -j SNAT --to $ip
+# ExecStart=$iptables_path -I INPUT -p $protocol --dport $port -j ACCEPT
+# ExecStart=$iptables_path -I FORWARD -s 10.8.0.0/24 -j ACCEPT
+# ExecStart=$iptables_path -I FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT
+# ExecStop=$iptables_path -t nat -D POSTROUTING -s 10.8.0.0/24 ! -d 10.8.0.0/24 -j SNAT --to $ip
+# ExecStop=$iptables_path -D INPUT -p $protocol --dport $port -j ACCEPT
+# ExecStop=$iptables_path -D FORWARD -s 10.8.0.0/24 -j ACCEPT
+# ExecStop=$iptables_path -D FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT" > /etc/systemd/system/openvpn-iptables.service
+# 		if [[ -n "$ip6" ]]; then
+# 			echo "ExecStart=$ip6tables_path -t nat -A POSTROUTING -s fddd:1194:1194:1194::/64 ! -d fddd:1194:1194:1194::/64 -j SNAT --to $ip6
+# ExecStart=$ip6tables_path -I FORWARD -s fddd:1194:1194:1194::/64 -j ACCEPT
+# ExecStart=$ip6tables_path -I FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT
+# ExecStop=$ip6tables_path -t nat -D POSTROUTING -s fddd:1194:1194:1194::/64 ! -d fddd:1194:1194:1194::/64 -j SNAT --to $ip6
+# ExecStop=$ip6tables_path -D FORWARD -s fddd:1194:1194:1194::/64 -j ACCEPT
+# ExecStop=$ip6tables_path -D FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT" >> /etc/systemd/system/openvpn-iptables.service
+# 		fi
+# 		echo "RemainAfterExit=yes
+# [Install]
+# WantedBy=multi-user.target" >> /etc/systemd/system/openvpn-iptables.service
+# 		systemctl enable --now openvpn-iptables.service
+# 	fi
 	# If SELinux is enabled and a custom port was selected, we need this
 	if sestatus 2>/dev/null | grep "Current mode" | grep -q "enforcing" && [[ "$port" != 1194 ]]; then
 		# Install semanage if not already present
