@@ -395,7 +395,7 @@ crl-verify crl.pem" >> /etc/openvpn/server/server.conf
 # [Install]
 # WantedBy=multi-user.target" >> /etc/systemd/system/openvpn-iptables.service
 # 		systemctl enable --now openvpn-iptables.service
-# 	fi
+ 	fi
 	# If SELinux is enabled and a custom port was selected, we need this
 	if sestatus 2>/dev/null | grep "Current mode" | grep -q "enforcing" && [[ "$port" != 1194 ]]; then
 		# Install semanage if not already present
